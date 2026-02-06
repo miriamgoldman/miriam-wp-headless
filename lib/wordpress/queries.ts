@@ -1,6 +1,6 @@
 import { fetchGraphQL } from './client';
 import { POST_FIELDS, POST_CARD_FIELDS, PAGE_FIELDS } from './fragments';
-import { Post, Page, PostsConnection, PagesConnection } from './types';
+import { Post, Page, PostsConnection } from './types';
 
 /**
  * Get all post slugs for static generation

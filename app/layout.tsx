@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { getSiteSettings } from '@/lib/wordpress/queries';
 import './globals.css';
 
@@ -29,23 +30,23 @@ export default async function RootLayout({
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between items-center py-6">
                 <div className="flex items-center">
-                  <a href="/" className="text-2xl font-bold text-gray-900">
+                  <Link href="/" className="text-2xl font-bold text-gray-900">
                     {settings?.title || 'WordPress Headless'}
-                  </a>
+                  </Link>
                 </div>
                 <nav className="flex space-x-8">
-                  <a
+                  <Link
                     href="/"
                     className="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium"
                   >
                     Home
-                  </a>
-                  <a
+                  </Link>
+                  <Link
                     href="/blog"
                     className="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium"
                   >
                     Blog
-                  </a>
+                  </Link>
                 </nav>
               </div>
             </div>

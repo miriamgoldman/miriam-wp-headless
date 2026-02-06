@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { getAllPostSlugs, getPostBySlug } from '@/lib/wordpress/queries';
 import PageContent from '@/components/wordpress/PageContent';
 
@@ -63,12 +64,12 @@ export default async function PostPage({ params }: PostPageProps) {
       <PageContent content={post} showMeta={true} />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <a
+        <Link
           href="/blog"
           className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium"
         >
           &larr; Back to blog
-        </a>
+        </Link>
       </div>
     </div>
   );

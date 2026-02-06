@@ -17,7 +17,7 @@ export interface FetchOptions {
  */
 export async function fetchGraphQL<T>(
   query: string,
-  variables: Record<string, any> = {},
+  variables: Record<string, unknown> = {},
   options: FetchOptions = {}
 ): Promise<GraphQLResponse<T>> {
   const { tags = [], revalidate = 3600 } = options;
@@ -62,7 +62,7 @@ export async function fetchGraphQL<T>(
  */
 export async function fetchGraphQLNoCache<T>(
   query: string,
-  variables: Record<string, any> = {}
+  variables: Record<string, unknown> = {}
 ): Promise<GraphQLResponse<T>> {
   return fetchGraphQL<T>(query, variables, {
     cache: 'no-store',

@@ -42,7 +42,7 @@ export interface Post {
     }>;
   };
   // Future: ACF fields
-  acfFields?: Record<string, any>;
+  acfFields?: Record<string, unknown>;
 }
 
 export interface Page {
@@ -66,7 +66,7 @@ export interface Page {
 export interface FlexibleContentBlock {
   fieldGroupName: string;
   // Additional fields will be added as ACF is configured
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface PostsConnection {

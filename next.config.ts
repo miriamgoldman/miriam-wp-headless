@@ -1,8 +1,9 @@
 import type { NextConfig } from 'next';
+import path from 'path';
 
 const nextConfig: NextConfig = {
   // Required: Enable custom cache handler
-  cacheHandler: require.resolve('./cacheHandler'),
+  cacheHandler: path.resolve('./cacheHandler.ts'),
   cacheMaxMemorySize: 0, // Disable in-memory caching to use custom handler
 
   // Image optimization for WordPress media

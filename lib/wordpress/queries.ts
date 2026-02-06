@@ -6,46 +6,56 @@ import { Post, Page, PostsConnection } from './types';
  * Get all post slugs for static generation
  */
 export async function getAllPostSlugs(): Promise<string[]> {
-  const query = `
-    query GetAllPostSlugs {
-      posts(first: 1000, where: { status: PUBLISH }) {
-        nodes {
-          slug
+  try {
+    const query = `
+      query GetAllPostSlugs {
+        posts(first: 1000, where: { status: PUBLISH }) {
+          nodes {
+            slug
+          }
         }
       }
-    }
-  `;
+    `;
 
-  const response = await fetchGraphQL<{ posts: { nodes: Array<{ slug: string }> } }>(
-    query,
-    {},
-    { tags: ['posts'], revalidate: 3600 }
-  );
+    const response = await fetchGraphQL<{ posts: { nodes: Array<{ slug: string }> } }>(
+      query,
+      {},
+      { tags: ['posts'], revalidate: 3600 }
+    );
 
-  return response.data?.posts.nodes.map((node) => node.slug) || [];
+    return response.data?.posts.nodes.map((node) => node.slug) || [];
+  } catch (error) {
+    console.warn('Unable to fetch post slugs at build time, will use ISR:', error);
+    return [];
+  }
 }
 
 /**
  * Get all page slugs for static generation
  */
 export async function getAllPageSlugs(): Promise<string[]> {
-  const query = `
-    query GetAllPageSlugs {
-      pages(first: 1000, where: { status: PUBLISH }) {
-        nodes {
-          slug
+  try {
+    const query = `
+      query GetAllPageSlugs {
+        pages(first: 1000, where: { status: PUBLISH }) {
+          nodes {
+            slug
+          }
         }
       }
-    }
-  `;
+    `;
 
-  const response = await fetchGraphQL<{ pages: { nodes: Array<{ slug: string }> } }>(
-    query,
-    {},
-    { tags: ['pages'], revalidate: 3600 }
-  );
+    const response = await fetchGraphQL<{ pages: { nodes: Array<{ slug: string }> } }>(
+      query,
+      {},
+      { tags: ['pages'], revalidate: 3600 }
+    );
 
-  return response.data?.pages.nodes.map((node) => node.slug) || [];
+    return response.data?.pages.nodes.map((node) => node.slug) || [];
+  } catch (error) {
+    console.warn('Unable to fetch page slugs at build time, will use ISR:', error);
+    return [];
+  }
 }
 
 /**

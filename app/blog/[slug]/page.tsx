@@ -9,6 +9,7 @@ interface PostPageProps {
 }
 
 export const revalidate = 3600; // Revalidate every hour
+export const dynamicParams = true; // Allow dynamic params not in generateStaticParams
 
 export async function generateStaticParams() {
   const slugs = await getAllPostSlugs();

@@ -8,6 +8,7 @@ interface PageProps {
 }
 
 export const revalidate = 7200; // Revalidate every 2 hours
+export const dynamicParams = true; // Allow dynamic params not in generateStaticParams
 
 export async function generateStaticParams() {
   const slugs = await getAllPageSlugs();

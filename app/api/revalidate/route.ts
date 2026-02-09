@@ -27,24 +27,77 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Validate origin header (optional security enhancement)
+  const origin = request.headers.get('origin') || request.headers.get('referer');
+  if (origin && process.env.WORDPRESS_API_URL) {
+    const allowedOrigin = process.env.WORDPRESS_API_URL.replace('/graphql', '');
+    if (!origin.startsWith(allowedOrigin)) {
+      console.warn(`[Revalidate] Rejected request from unauthorized origin: ${origin}`);
+    }
+  }
+
   try {
     const body = await request.json();
-    const { path, tag } = body;
+    const { path, tag, invalidation } = body;
 
-    // Revalidate by path
-    if (path) {
-      await revalidatePath(path);
-      console.log(`[Revalidate] Path revalidated: ${path}`);
+    // Check query params for path (compatibility with existing WordPress plugin)
+    const pathFromQuery = request.nextUrl.searchParams.get('path');
+
+    // New format: invalidation object with arrays
+    if (invalidation) {
+      const { tags, paths } = invalidation;
+
+      if (!tags?.length && !paths?.length) {
+        return NextResponse.json(
+          { message: 'Missing tags or paths in invalidation object' },
+          { status: 400 }
+        );
+      }
+
+      const results: { tags: string[]; paths: string[] } = { tags: [], paths: [] };
+
+      // Process tag array
+      if (tags && Array.isArray(tags)) {
+        for (const t of tags) {
+          await revalidateTag(t);
+          results.tags.push(t);
+          console.log(`[Revalidate] Tag revalidated: ${t}`);
+        }
+      }
+
+      // Process path array
+      if (paths && Array.isArray(paths)) {
+        for (const p of paths) {
+          await revalidatePath(p);
+          results.paths.push(p);
+          console.log(`[Revalidate] Path revalidated: ${p}`);
+        }
+      }
+
+      console.log(`[Revalidate] Webhook received at ${new Date().toISOString()}`);
+
+      return NextResponse.json({
+        revalidated: true,
+        now: Date.now(),
+        results,
+      });
     }
 
-    // Revalidate by tag
+    // Legacy format: single path or tag (backward compatibility)
+    // Support path from both body and query params (existing WP plugin sends via query)
+    const pathToRevalidate = path || pathFromQuery;
+
+    if (pathToRevalidate) {
+      await revalidatePath(pathToRevalidate);
+      console.log(`[Revalidate] Path revalidated: ${pathToRevalidate}`);
+    }
+
     if (tag) {
       await revalidateTag(tag);
       console.log(`[Revalidate] Tag revalidated: ${tag}`);
     }
 
-    // If neither path nor tag provided, return error
-    if (!path && !tag) {
+    if (!pathToRevalidate && !tag) {
       return NextResponse.json(
         { message: 'Missing path or tag parameter' },
         { status: 400 }
@@ -54,7 +107,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       revalidated: true,
       now: Date.now(),
-      path: path || null,
+      path: pathToRevalidate || null,
       tag: tag || null,
     });
   } catch (err) {

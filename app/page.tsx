@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { getRecentPosts } from '@/lib/wordpress/queries';
 import PostCard from '@/components/wordpress/PostCard';
 
-export const revalidate = 3600; // Revalidate every hour
+export const revalidate = 300; // Revalidate every 5 minutes
 
 export default async function Home() {
   const { nodes: posts } = await getRecentPosts(3);

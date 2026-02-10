@@ -25,6 +25,21 @@ const nextConfig: NextConfig = {
       fullUrl: true,
     },
   },
+
+  // Control browser caching - prevent browsers from caching stale content for too long
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 's-maxage=300, stale-while-revalidate=60',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

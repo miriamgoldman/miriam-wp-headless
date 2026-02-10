@@ -44,26 +44,26 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Handle both JSON and form-encoded bodies
+  let body: { path?: string; tag?: string; invalidation?: { tags?: string[]; paths?: string[] } } = {};
+
   try {
-    // Handle both JSON and form-encoded bodies
-    let body: { path?: string; tag?: string; invalidation?: { tags?: string[]; paths?: string[] } } = {};
     const contentType = request.headers.get('content-type') || '';
 
     if (contentType.includes('application/json')) {
       body = await request.json();
-    } else if (contentType.includes('application/x-www-form-urlencoded')) {
-      // WordPress plugin sends form-encoded data, which we don't actually need
-      // Just create empty body since we use query params
-      body = {};
     } else {
-      // Try JSON as fallback
-      try {
-        body = await request.json();
-      } catch {
-        body = {};
-      }
+      // WordPress plugin sends form-encoded data, which we don't need
+      // Path comes from query params, so just use empty body
+      body = {};
     }
+  } catch (error) {
+    // If body parsing fails, continue with empty body (path is in query params anyway)
+    console.log('[Revalidate] Body parsing failed (expected for form-encoded), continuing with query params');
+    body = {};
+  }
 
+  try {
     const { path, tag, invalidation } = body;
 
     // Check query params for path (compatibility with existing WordPress plugin)

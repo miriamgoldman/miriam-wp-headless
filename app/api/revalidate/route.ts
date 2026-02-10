@@ -45,7 +45,25 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    // Handle both JSON and form-encoded bodies
+    let body: any = {};
+    const contentType = request.headers.get('content-type') || '';
+
+    if (contentType.includes('application/json')) {
+      body = await request.json();
+    } else if (contentType.includes('application/x-www-form-urlencoded')) {
+      // WordPress plugin sends form-encoded data, which we don't actually need
+      // Just create empty body since we use query params
+      body = {};
+    } else {
+      // Try JSON as fallback
+      try {
+        body = await request.json();
+      } catch {
+        body = {};
+      }
+    }
+
     const { path, tag, invalidation } = body;
 
     // Check query params for path (compatibility with existing WordPress plugin)

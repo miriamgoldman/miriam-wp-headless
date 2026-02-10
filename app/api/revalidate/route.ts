@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // Handle both JSON and form-encoded bodies
-    let body: any = {};
+    let body: { path?: string; tag?: string; invalidation?: { tags?: string[]; paths?: string[] } } = {};
     const contentType = request.headers.get('content-type') || '';
 
     if (contentType.includes('application/json')) {

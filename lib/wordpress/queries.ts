@@ -138,7 +138,7 @@ export async function getRecentPosts(
     const response = await fetchGraphQL<{ posts: PostsConnection }>(
       query,
       { first, after },
-      { tags: ['posts'], revalidate: 1800 }
+      { tags: ['posts'], revalidate: 300 }
     );
 
     return (

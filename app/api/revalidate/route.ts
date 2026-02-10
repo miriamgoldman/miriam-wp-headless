@@ -19,8 +19,16 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   const secret = request.nextUrl.searchParams.get('secret');
 
+  // Debug logging
+  console.log('[Revalidate] Request received at:', new Date().toISOString());
+  console.log('[Revalidate] Secret from query:', secret ? `${secret.substring(0,10)}... (length: ${secret.length})` : 'MISSING');
+  console.log('[Revalidate] Expected secret defined:', !!process.env.WORDPRESS_REVALIDATE_SECRET);
+  console.log('[Revalidate] Expected secret:', process.env.WORDPRESS_REVALIDATE_SECRET ? `${process.env.WORDPRESS_REVALIDATE_SECRET.substring(0,10)}... (length: ${process.env.WORDPRESS_REVALIDATE_SECRET.length})` : 'UNDEFINED');
+  console.log('[Revalidate] Secrets match:', secret === process.env.WORDPRESS_REVALIDATE_SECRET);
+
   // Verify secret token
   if (secret !== process.env.WORDPRESS_REVALIDATE_SECRET) {
+    console.log('[Revalidate] 401 - Secret mismatch or undefined');
     return NextResponse.json(
       { message: 'Invalid secret token' },
       { status: 401 }

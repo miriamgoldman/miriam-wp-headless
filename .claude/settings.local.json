@@ -8,7 +8,21 @@
       "Bash(gh repo create:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(ls:*)",
+      "WebSearch",
+      "Bash(curl:*)",
+      "Bash(kill:*)",
+      "Bash(if [ ! -f .env.local ])",
+      "Bash(then cp .env.local.example .env.local)",
+      "Bash(fi)",
+      "Bash(terminus secret:list:*)",
+      "Bash(terminus wp migration-test-miriam.live -- eval \"if \\(defined\\(''WORDPRESS_REVALIDATE_SECRET''\\)\\) { echo ''Secret is defined: '' . substr\\(WORDPRESS_REVALIDATE_SECRET, 0, 10\\) . ''...\\\\n''; } else { echo ''Secret NOT defined\\\\n''; } if \\(defined\\(''NEXTJS_REVALIDATE_URL''\\)\\) { echo ''URL is defined: '' . NEXTJS_REVALIDATE_URL . ''\\\\n''; } else { echo ''URL NOT defined\\\\n''; }\")",
+      "Bash(terminus wp migration-test-miriam.live -- eval:*)",
+      "Bash(terminus secret:site:get:*)",
+      "Bash(terminus env:clear-cache:*)",
+      "Bash(gh api:*)",
+      "Bash(git check-ignore:*)"
     ]
   }
 }

@@ -25,7 +25,8 @@
       "Bash(git check-ignore:*)",
       "Bash(npm view:*)",
       "Bash(npm run build:*)",
-      "Bash(timeout 10 npm run dev:*)"
+      "Bash(timeout 10 npm run dev:*)",
+      "Bash(echo:*)"
     ]
   }
 }

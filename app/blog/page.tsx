@@ -7,8 +7,6 @@ export const metadata: Metadata = {
   description: 'Read our latest blog posts',
 };
 
-export const revalidate = 1800; // Revalidate every 30 minutes
-
 export default async function BlogPage() {
   const { nodes: posts, pageInfo } = await getRecentPosts(12);
 

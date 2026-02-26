@@ -3,16 +3,30 @@ import Link from 'next/link';
 import { getSiteSettings } from '@/lib/wordpress/queries';
 import './globals.css';
 
-export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getSiteSettings();
+// Static year to avoid dynamic rendering issues
+const CURRENT_YEAR = 2026;
 
-  return {
-    title: {
-      default: settings?.title || 'WordPress Headless',
-      template: `%s | ${settings?.title || 'WordPress Headless'}`,
-    },
-    description: settings?.description || 'A headless WordPress site built with Next.js',
-  };
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const settings = await getSiteSettings();
+
+    return {
+      title: {
+        default: settings?.title || 'WordPress Headless',
+        template: `%s | ${settings?.title || 'WordPress Headless'}`,
+      },
+      description: settings?.description || 'A headless WordPress site built with Next.js',
+    };
+  } catch (error) {
+    console.warn('[Layout] WordPress unavailable during build, using fallback metadata');
+    return {
+      title: {
+        default: 'WordPress Headless',
+        template: '%s | WordPress Headless',
+      },
+      description: 'A headless WordPress site built with Next.js',
+    };
+  }
 }
 
 export default async function RootLayout({
@@ -20,7 +34,13 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const settings = await getSiteSettings();
+  let settings;
+  try {
+    settings = await getSiteSettings();
+  } catch (error) {
+    console.warn('[Layout] WordPress unavailable during build, using fallback settings');
+    settings = null;
+  }
 
   return (
     <html lang={settings?.language || 'en'}>
@@ -57,7 +77,7 @@ export default async function RootLayout({
           <footer className="bg-gray-50 border-t border-gray-200 mt-auto">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
               <p className="text-center text-gray-600 text-sm">
-                &copy; {new Date().getFullYear()} {settings?.title || 'WordPress Headless'}. All
+                &copy; {CURRENT_YEAR} {settings?.title || 'WordPress Headless'}. All
                 rights reserved.
               </p>
             </div>

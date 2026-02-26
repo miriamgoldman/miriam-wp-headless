@@ -1,71 +1,52 @@
-import { GraphQLResponse } from './types';
+/**
+ * WordPress REST API Client
+ * Simple fetch wrapper for WordPress REST API v2
+ */
 
 const WORDPRESS_API_URL = process.env.WORDPRESS_API_URL || '';
 
-if (!WORDPRESS_API_URL) {
-  console.warn('WORDPRESS_API_URL is not set. WordPress data fetching will fail.');
-}
-
-export interface FetchOptions {
+interface FetchOptions {
   tags?: string[];
-  revalidate?: number | false;
-  cache?: RequestCache;
 }
 
 /**
- * Fetch data from WordPress GraphQL API with tag-based caching support
+ * Fetch from WordPress REST API
  */
-export async function fetchGraphQL<T>(
-  query: string,
-  variables: Record<string, unknown> = {},
+export async function fetchFromWordPress<T>(
+  endpoint: string,
   options: FetchOptions = {}
-): Promise<GraphQLResponse<T>> {
-  const { tags = [], revalidate = 3600 } = options;
+): Promise<T> {
+  if (!WORDPRESS_API_URL) {
+    throw new Error('WORDPRESS_API_URL environment variable is not set');
+  }
+
+  // Build full URL
+  const url = `${WORDPRESS_API_URL}${endpoint}`;
+
+  const fetchOptions: RequestInit = {
+    headers: {
+      'Accept': 'application/json',
+    },
+  };
+
+  // Add cache tags if provided
+  if (options.tags && options.tags.length > 0) {
+    fetchOptions.next = { tags: options.tags };
+  }
 
   try {
-    const response = await fetch(WORDPRESS_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query,
-        variables,
-      }),
-      next: {
-        tags: tags,
-        revalidate: revalidate,
-      },
-    });
+    const response = await fetch(url, fetchOptions);
 
     if (!response.ok) {
       throw new Error(
-        `GraphQL request failed: ${response.status} ${response.statusText}`
+        `REST API request failed: ${response.status} ${response.statusText}`
       );
     }
 
-    const json = await response.json();
-
-    if (json.errors) {
-      console.error('GraphQL Errors:', json.errors);
-    }
-
-    return json;
+    const data = await response.json();
+    return data as T;
   } catch (error) {
     console.error('Error fetching from WordPress:', error);
     throw error;
   }
-}
-
-/**
- * Fetch data without caching (for dynamic/real-time data)
- */
-export async function fetchGraphQLNoCache<T>(
-  query: string,
-  variables: Record<string, unknown> = {}
-): Promise<GraphQLResponse<T>> {
-  return fetchGraphQL<T>(query, variables, {
-    cache: 'no-store',
-    revalidate: false,
-  });
 }

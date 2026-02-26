@@ -1,11 +1,93 @@
 import { cacheLife, cacheTag } from 'next/cache';
-import { fetchGraphQL } from './client';
-import { POST_FIELDS, POST_CARD_FIELDS, PAGE_FIELDS } from './fragments';
-import { Post, Page, PostsConnection } from './types';
+import { fetchFromWordPress } from './client';
+import { Post, Page, PostsConnection, RestPost, RestPage, RestSettings } from './types';
+
+/**
+ * Transform REST API post to internal Post type
+ */
+function transformPost(restPost: RestPost): Post {
+  const featuredMedia = restPost._embedded?.['wp:featuredmedia']?.[0];
+  const author = restPost._embedded?.['author']?.[0];
+  const categories = restPost._embedded?.['wp:term']?.[0] || [];
+  const tags = restPost._embedded?.['wp:term']?.[1] || [];
+
+  return {
+    id: `post-${restPost.id}`,
+    databaseId: restPost.id,
+    title: restPost.title.rendered,
+    slug: restPost.slug,
+    content: restPost.content.rendered,
+    excerpt: restPost.excerpt.rendered,
+    date: restPost.date,
+    modified: restPost.modified,
+    featuredImage: featuredMedia
+      ? {
+          node: {
+            sourceUrl: featuredMedia.source_url,
+            altText: featuredMedia.alt_text,
+            mediaDetails: featuredMedia.media_details,
+          },
+        }
+      : undefined,
+    author: author
+      ? {
+          node: {
+            name: author.name,
+            avatar: author.avatar_urls?.['96']
+              ? { url: author.avatar_urls['96'] }
+              : undefined,
+          },
+        }
+      : undefined,
+    categories: categories.length > 0
+      ? {
+          nodes: categories.map((cat) => ({
+            id: `term-${cat.id}`,
+            name: cat.name,
+            slug: cat.slug,
+          })),
+        }
+      : undefined,
+    tags: tags.length > 0
+      ? {
+          nodes: tags.map((tag) => ({
+            id: `term-${tag.id}`,
+            name: tag.name,
+            slug: tag.slug,
+          })),
+        }
+      : undefined,
+  };
+}
+
+/**
+ * Transform REST API page to internal Page type
+ */
+function transformPage(restPage: RestPage): Page {
+  const featuredMedia = restPage._embedded?.['wp:featuredmedia']?.[0];
+
+  return {
+    id: `page-${restPage.id}`,
+    databaseId: restPage.id,
+    title: restPage.title.rendered,
+    slug: restPage.slug,
+    content: restPage.content.rendered,
+    date: restPage.date,
+    modified: restPage.modified,
+    featuredImage: featuredMedia
+      ? {
+          node: {
+            sourceUrl: featuredMedia.source_url,
+            altText: featuredMedia.alt_text,
+            mediaDetails: featuredMedia.media_details,
+          },
+        }
+      : undefined,
+  };
+}
 
 /**
  * Generate surrogate keys from a Post (matches WordPress plugin pattern)
- * Keys: post-{id}, post-{slug}, post-list, term-{categoryId}, term-{tagId}
  */
 function generatePostSurrogateKeys(post: Post): string[] {
   const keys: string[] = [];
@@ -17,8 +99,7 @@ function generatePostSurrogateKeys(post: Post): string[] {
   // Add category term keys
   if (post.categories?.nodes) {
     post.categories.nodes.forEach((category) => {
-      // Extract numeric ID from GraphQL global ID (e.g., "dGVybTox" -> "1")
-      const numericId = category.id.match(/\d+$/)?.[0] || category.id;
+      const numericId = category.id.replace('term-', '');
       keys.push(`term-${numericId}`);
     });
   }
@@ -26,17 +107,16 @@ function generatePostSurrogateKeys(post: Post): string[] {
   // Add tag term keys
   if (post.tags?.nodes) {
     post.tags.nodes.forEach((tag) => {
-      const numericId = tag.id.match(/\d+$/)?.[0] || tag.id;
+      const numericId = tag.id.replace('term-', '');
       keys.push(`term-${numericId}`);
     });
   }
 
-  return [...new Set(keys)]; // Remove duplicates
+  return [...new Set(keys)];
 }
 
 /**
  * Generate surrogate keys from a Page
- * Keys: page-{id}, page-{slug}, page-list
  */
 function generatePageSurrogateKeys(page: Page): string[] {
   const keys: string[] = [];
@@ -50,91 +130,56 @@ function generatePageSurrogateKeys(page: Page): string[] {
 
 // ============================================================================
 // LOW-LEVEL FETCH FUNCTIONS
-// These call GraphQL and tag the fetch-level cache
 // ============================================================================
 
 async function fetchAllPostSlugs(): Promise<{ slugs: string[]; surrogateKeys: string[] }> {
-  const query = `
-    query GetAllPostSlugs {
-      posts(first: 1000, where: { status: PUBLISH }) {
-        nodes {
-          slug
-        }
-      }
-    }
-  `;
-
-  const response = await fetchGraphQL<{ posts: { nodes: Array<{ slug: string }> } }>(
-    query,
-    {},
+  const posts = await fetchFromWordPress<RestPost[]>(
+    '/posts?per_page=100&status=publish&_fields=slug',
     { tags: ['post-list'] }
   );
 
-  const slugs = response.data?.posts.nodes.map((node) => node.slug) || [];
+  const slugs = posts.map((post) => post.slug);
   return { slugs, surrogateKeys: ['post-list'] };
 }
 
 async function fetchAllPageSlugs(): Promise<{ slugs: string[]; surrogateKeys: string[] }> {
-  const query = `
-    query GetAllPageSlugs {
-      pages(first: 1000, where: { status: PUBLISH }) {
-        nodes {
-          slug
-        }
-      }
-    }
-  `;
-
-  const response = await fetchGraphQL<{ pages: { nodes: Array<{ slug: string }> } }>(
-    query,
-    {},
+  const pages = await fetchFromWordPress<RestPage[]>(
+    '/pages?per_page=100&status=publish&_fields=slug',
     { tags: ['page-list'] }
   );
 
-  const slugs = response.data?.pages.nodes.map((node) => node.slug) || [];
+  const slugs = pages.map((page) => page.slug);
   return { slugs, surrogateKeys: ['page-list'] };
 }
 
 async function fetchSinglePost(slug: string): Promise<{ post: Post | null; surrogateKeys: string[] }> {
-  const query = `
-    query GetPostBySlug($slug: ID!) {
-      post(id: $slug, idType: SLUG) {
-        ...PostFields
-      }
-    }
-    ${POST_FIELDS}
-  `;
-
-  const response = await fetchGraphQL<{ post: Post }>(
-    query,
-    { slug },
+  const posts = await fetchFromWordPress<RestPost[]>(
+    `/posts?_embed&slug=${encodeURIComponent(slug)}&status=publish`,
     { tags: [`post-${slug}`, 'post-list'] }
   );
 
-  const post = response.data?.post || null;
-  const surrogateKeys = post ? generatePostSurrogateKeys(post) : [`post-${slug}`];
+  if (!posts || posts.length === 0) {
+    return { post: null, surrogateKeys: [`post-${slug}`] };
+  }
+
+  const post = transformPost(posts[0]);
+  const surrogateKeys = generatePostSurrogateKeys(post);
 
   return { post, surrogateKeys };
 }
 
 async function fetchSinglePage(slug: string): Promise<{ page: Page | null; surrogateKeys: string[] }> {
-  const query = `
-    query GetPageBySlug($slug: ID!) {
-      page(id: $slug, idType: URI) {
-        ...PageFields
-      }
-    }
-    ${PAGE_FIELDS}
-  `;
-
-  const response = await fetchGraphQL<{ page: Page }>(
-    query,
-    { slug },
+  const pages = await fetchFromWordPress<RestPage[]>(
+    `/pages?_embed&slug=${encodeURIComponent(slug)}&status=publish`,
     { tags: [`page-${slug}`, 'page-list'] }
   );
 
-  const page = response.data?.page || null;
-  const surrogateKeys = page ? generatePageSurrogateKeys(page) : [`page-${slug}`];
+  if (!pages || pages.length === 0) {
+    return { page: null, surrogateKeys: [`page-${slug}`] };
+  }
+
+  const page = transformPage(pages[0]);
+  const surrogateKeys = generatePageSurrogateKeys(page);
 
   return { page, surrogateKeys };
 }
@@ -143,61 +188,56 @@ async function fetchRecentPostsData(
   first: number,
   after?: string
 ): Promise<{ posts: PostsConnection; surrogateKeys: string[] }> {
-  const query = `
-    query GetRecentPosts($first: Int!, $after: String) {
-      posts(first: $first, after: $after, where: { status: PUBLISH, orderby: { field: DATE, order: DESC } }) {
-        nodes {
-          ...PostCardFields
-        }
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-      }
-    }
-    ${POST_CARD_FIELDS}
-  `;
+  const params = new URLSearchParams({
+    _embed: 'true',
+    per_page: first.toString(),
+    status: 'publish',
+    orderby: 'date',
+    order: 'desc',
+  });
 
-  const response = await fetchGraphQL<{ posts: PostsConnection }>(
-    query,
-    { first, after },
+  if (after) {
+    params.set('offset', after);
+  }
+
+  const restPosts = await fetchFromWordPress<RestPost[]>(
+    `/posts?${params.toString()}`,
     { tags: ['post-list'] }
   );
 
-  const posts = response.data?.posts || {
-    nodes: [],
-    pageInfo: { hasNextPage: false, endCursor: null },
-  };
-
-  // Generate surrogate keys from all returned posts
-  const allKeys = posts.nodes.flatMap((post) => generatePostSurrogateKeys(post));
+  const posts = restPosts.map(transformPost);
+  const allKeys = posts.flatMap((post) => generatePostSurrogateKeys(post));
   const uniqueKeys = [...new Set(allKeys)];
 
-  return { posts, surrogateKeys: uniqueKeys };
+  return {
+    posts: {
+      nodes: posts,
+      pageInfo: {
+        hasNextPage: restPosts.length === first,
+        endCursor: after ? (parseInt(after) + first).toString() : first.toString(),
+      },
+    },
+    surrogateKeys: uniqueKeys,
+  };
 }
 
 async function fetchPostsByCategoryData(
   categorySlug: string,
   first: number
 ): Promise<{ posts: Post[]; surrogateKeys: string[] }> {
-  const query = `
-    query GetPostsByCategory($categorySlug: String!, $first: Int!) {
-      posts(first: $first, where: { categoryName: $categorySlug, status: PUBLISH }) {
-        nodes {
-          ...PostCardFields
-        }
-      }
-    }
-    ${POST_CARD_FIELDS}
-  `;
+  const params = new URLSearchParams({
+    _embed: 'true',
+    per_page: first.toString(),
+    status: 'publish',
+    category_name: categorySlug,
+  });
 
-  const response = await fetchGraphQL<{ posts: { nodes: Post[] } }>(
-    query,
-    { categorySlug, first },
+  const restPosts = await fetchFromWordPress<RestPost[]>(
+    `/posts?${params.toString()}`,
     { tags: [`category-${categorySlug}`, 'post-list'] }
   );
 
-  const posts = response.data?.posts.nodes || [];
+  const posts = restPosts.map(transformPost);
   const allKeys = posts.flatMap((post) => generatePostSurrogateKeys(post));
   const uniqueKeys = [...new Set(allKeys)];
 
@@ -213,40 +253,33 @@ async function fetchSiteSettingsData(): Promise<{
   } | null;
   surrogateKeys: string[];
 }> {
-  const query = `
-    query GetSiteSettings {
-      generalSettings {
-        title
-        description
-        url
-        language
-      }
-    }
-  `;
+  try {
+    // Note: Settings endpoint might require authentication
+    // Fall back to null if unavailable
+    const settings = await fetchFromWordPress<RestSettings>(
+      '/',
+      { tags: ['settings'] }
+    );
 
-  const response = await fetchGraphQL<{
-    generalSettings: {
-      title: string;
-      description: string;
-      url: string;
-      language: string;
+    return {
+      settings: {
+        title: settings.title,
+        description: settings.description,
+        url: settings.url,
+        language: settings.language,
+      },
+      surrogateKeys: ['settings'],
     };
-  }>(query, {}, { tags: ['settings'] });
-
-  return {
-    settings: response.data?.generalSettings || null,
-    surrogateKeys: ['settings'],
-  };
+  } catch (error) {
+    console.warn('[fetchSiteSettings] Settings endpoint unavailable:', error);
+    return { settings: null, surrogateKeys: ['settings'] };
+  }
 }
 
 // ============================================================================
 // CACHED WRAPPER FUNCTIONS WITH 'use cache'
-// These use infinite cache life and rely entirely on tag-based revalidation
 // ============================================================================
 
-/**
- * Get all post slugs (cached with 'use cache')
- */
 export async function getAllPostSlugs(): Promise<string[]> {
   'use cache';
   cacheLife({ stale: Infinity, revalidate: Infinity, expire: Infinity });
@@ -261,9 +294,6 @@ export async function getAllPostSlugs(): Promise<string[]> {
   }
 }
 
-/**
- * Get all page slugs (cached with 'use cache')
- */
 export async function getAllPageSlugs(): Promise<string[]> {
   'use cache';
   cacheLife({ stale: Infinity, revalidate: Infinity, expire: Infinity });
@@ -278,9 +308,6 @@ export async function getAllPageSlugs(): Promise<string[]> {
   }
 }
 
-/**
- * Get a single post by slug (cached with 'use cache')
- */
 export async function getPostBySlug(slug: string): Promise<Post | null> {
   'use cache';
   cacheLife({ stale: Infinity, revalidate: Infinity, expire: Infinity });
@@ -295,9 +322,6 @@ export async function getPostBySlug(slug: string): Promise<Post | null> {
   }
 }
 
-/**
- * Get a single page by slug (cached with 'use cache')
- */
 export async function getPageBySlug(slug: string): Promise<Page | null> {
   'use cache';
   cacheLife({ stale: Infinity, revalidate: Infinity, expire: Infinity });
@@ -312,9 +336,6 @@ export async function getPageBySlug(slug: string): Promise<Page | null> {
   }
 }
 
-/**
- * Get recent posts with pagination (cached with 'use cache')
- */
 export async function getRecentPosts(first: number = 10, after?: string): Promise<PostsConnection> {
   'use cache';
   cacheLife({ stale: Infinity, revalidate: Infinity, expire: Infinity });
@@ -332,9 +353,6 @@ export async function getRecentPosts(first: number = 10, after?: string): Promis
   }
 }
 
-/**
- * Get posts by category (cached with 'use cache')
- */
 export async function getPostsByCategory(categorySlug: string, first: number = 10): Promise<Post[]> {
   'use cache';
   cacheLife({ stale: Infinity, revalidate: Infinity, expire: Infinity });
@@ -349,9 +367,6 @@ export async function getPostsByCategory(categorySlug: string, first: number = 1
   }
 }
 
-/**
- * Get site settings (cached with 'use cache')
- */
 export async function getSiteSettings() {
   'use cache';
   cacheLife({ stale: Infinity, revalidate: Infinity, expire: Infinity });

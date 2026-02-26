@@ -7,17 +7,16 @@ import { NextRequest, NextResponse } from 'next/server';
  * This endpoint is called by WordPress webhooks to trigger cache revalidation
  * when content is updated.
  *
- * Usage:
- * POST /api/revalidate?secret=YOUR_SECRET
- * Body: { path?: string, tag?: string }
- *
- * Examples:
- * - Revalidate a specific path: { path: "/blog/my-post" }
- * - Revalidate by tag: { tag: "posts" }
- * - Revalidate both: { path: "/blog/my-post", tag: "posts" }
+ * Expected payload from WordPress:
+ * {
+ *   "postId": 123,
+ *   "slug": "my-post",
+ *   "surrogate_keys": ["post-123", "post-my-post", "post-list", "term-5"],
+ *   "secret": "xxx"
+ * }
  */
 export async function POST(request: NextRequest) {
-  const secret = request.nextUrl.searchParams.get('secret');
+  let secret = request.nextUrl.searchParams.get('secret');
 
   // Debug logging
   console.log('[Revalidate] Request received at:', new Date().toISOString());
@@ -44,30 +43,69 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Handle both JSON and form-encoded bodies
-  let body: { path?: string; tag?: string; invalidation?: { tags?: string[]; paths?: string[] } } = {};
+  // Parse request body
+  let body: {
+    postId?: number;
+    slug?: string;
+    surrogate_keys?: string[];
+    secret?: string;
+    path?: string;
+    tag?: string;
+    invalidation?: { tags?: string[]; paths?: string[] };
+  } = {};
 
   try {
     const contentType = request.headers.get('content-type') || '';
 
     if (contentType.includes('application/json')) {
       body = await request.json();
-    } else {
-      // WordPress plugin sends form-encoded data, which we don't need
-      // Path comes from query params, so just use empty body
-      body = {};
+
+      // If secret is in body, use it (WordPress webhook pattern)
+      if (body.secret && !secret) {
+        secret = body.secret;
+      }
     }
   } catch (error) {
-    // If body parsing fails, continue with empty body (path is in query params anyway)
-    console.log('[Revalidate] Body parsing failed (expected for form-encoded), continuing with query params');
-    body = {};
+    console.log('[Revalidate] Body parsing failed:', error);
   }
 
   try {
-    const { path, tag, invalidation } = body;
+    const { path, tag, invalidation, surrogate_keys } = body;
 
     // Check query params for path (compatibility with existing WordPress plugin)
     const pathFromQuery = request.nextUrl.searchParams.get('path');
+
+    // WordPress webhook format: surrogate_keys array
+    if (surrogate_keys && Array.isArray(surrogate_keys)) {
+      if (surrogate_keys.length === 0) {
+        return NextResponse.json(
+          { error: 'surrogate_keys array is empty' },
+          { status: 400 }
+        );
+      }
+
+      const results = [];
+      for (const key of surrogate_keys) {
+        try {
+          revalidateTag(key, 'max');
+          results.push({ key, status: 'success' });
+        } catch (error) {
+          results.push({ key, status: 'error', message: String(error) });
+        }
+      }
+
+      console.log(`[Revalidate] Revalidated ${surrogate_keys.length} tags from WordPress webhook`);
+
+      return NextResponse.json({
+        message: `Revalidated ${surrogate_keys.length} cache tags`,
+        revalidated_at: new Date().toISOString(),
+        results,
+      }, {
+        headers: {
+          'Cache-Control': 'private, no-cache, no-store, max-age=0, must-revalidate',
+        }
+      });
+    }
 
     // New format: invalidation object with arrays
     if (invalidation) {
@@ -163,6 +201,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     message: 'Revalidation endpoint is working',
-    usage: 'Send POST request with { path: "/path" } or { tag: "tag-name" } in body',
+    usage: 'Send POST request with { surrogate_keys: ["post-123", "post-list"] } in body',
+    expected_secret: 'WORDPRESS_REVALIDATE_SECRET environment variable',
   });
 }

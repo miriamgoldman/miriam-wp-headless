@@ -4,15 +4,26 @@ import { getSiteSettings } from '@/lib/wordpress/queries';
 import './globals.css';
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getSiteSettings();
+  try {
+    const settings = await getSiteSettings();
 
-  return {
-    title: {
-      default: settings?.title || 'WordPress Headless',
-      template: `%s | ${settings?.title || 'WordPress Headless'}`,
-    },
-    description: settings?.description || 'A headless WordPress site built with Next.js',
-  };
+    return {
+      title: {
+        default: settings?.title || 'WordPress Headless',
+        template: `%s | ${settings?.title || 'WordPress Headless'}`,
+      },
+      description: settings?.description || 'A headless WordPress site built with Next.js',
+    };
+  } catch (error) {
+    console.warn('[Layout] WordPress unavailable during build, using fallback metadata');
+    return {
+      title: {
+        default: 'WordPress Headless',
+        template: '%s | WordPress Headless',
+      },
+      description: 'A headless WordPress site built with Next.js',
+    };
+  }
 }
 
 export default async function RootLayout({
@@ -20,7 +31,13 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const settings = await getSiteSettings();
+  let settings;
+  try {
+    settings = await getSiteSettings();
+  } catch (error) {
+    console.warn('[Layout] WordPress unavailable during build, using fallback settings');
+    settings = null;
+  }
 
   return (
     <html lang={settings?.language || 'en'}>

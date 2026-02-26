@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       // Process tag array
       if (tags && Array.isArray(tags)) {
         for (const t of tags) {
-          await revalidateTag(t);
+          revalidateTag(t, 'max');
           results.tags.push(t);
           console.log(`[Revalidate] Tag revalidated: ${t}`);
         }
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (tag) {
-      await revalidateTag(tag);
+      revalidateTag(tag, 'max');
       console.log(`[Revalidate] Tag revalidated: ${tag}`);
     }
 

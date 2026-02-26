@@ -7,15 +7,23 @@ interface PageProps {
   params: Promise<{ slug: string[] }>;
 }
 
-export const revalidate = 7200; // Revalidate every 2 hours
-export const dynamicParams = true; // Allow dynamic params not in generateStaticParams
-
 export async function generateStaticParams() {
-  const slugs = await getAllPageSlugs();
+  try {
+    const slugs = await getAllPageSlugs();
 
-  return slugs.map((slug) => ({
-    slug: [slug],
-  }));
+    // Next.js 16 Cache Components requires at least one entry
+    if (slugs.length === 0) {
+      return [{ slug: ['placeholder'] }];
+    }
+
+    return slugs.map((slug) => ({
+      slug: [slug],
+    }));
+  } catch (error) {
+    // If WordPress is unavailable during build, return placeholder
+    console.warn('[generateStaticParams] WordPress unavailable, using placeholder');
+    return [{ slug: ['placeholder'] }];
+  }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getAllPageSlugs, getPageBySlug } from '@/lib/wordpress/queries';
+import PageContent from '@/components/wordpress/PageContent';
 
 interface PageProps {
   params: Promise<{ slug: string[] }>;
@@ -38,6 +39,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: page.title,
     description: page.content.replace(/<[^>]*>/g, '').slice(0, 160),
+    openGraph: {
+      title: page.title,
+      type: 'website',
+      images: page.featuredImage
+        ? [
+            {
+              url: page.featuredImage.node.sourceUrl,
+              alt: page.featuredImage.node.altText || page.title,
+            },
+          ]
+        : [],
+    },
   };
 }
 
@@ -51,9 +64,8 @@ export default async function Page({ params }: PageProps) {
   }
 
   return (
-    <article>
-      <h1>{page.title}</h1>
-      <div dangerouslySetInnerHTML={{ __html: page.content }} />
-    </article>
+    <div className="bg-white">
+      <PageContent content={page} showMeta={false} />
+    </div>
   );
 }

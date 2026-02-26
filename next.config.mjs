@@ -47,7 +47,7 @@ const nextConfig = {
     },
   },
 
-  // Control browser caching - prevent browsers from caching stale content for too long
+  // CDN cache control - long TTL with surrogate key purging for freshness
   async headers() {
     return [
       {
@@ -55,7 +55,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 's-maxage=300, stale-while-revalidate=60',
+            value: 's-maxage=604800, stale-while-revalidate=86400',
           },
         ],
       },

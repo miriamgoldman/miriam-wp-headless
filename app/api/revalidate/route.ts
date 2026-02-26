@@ -16,23 +16,16 @@ import { NextRequest, NextResponse } from 'next/server';
  * }
  */
 export async function POST(request: NextRequest) {
-  let secret = request.nextUrl.searchParams.get('secret');
+  // Try to get secret from multiple sources
+  let secret = request.nextUrl.searchParams.get('secret') ||
+                request.headers.get('X-Webhook-Secret') ||
+                null;
 
   // Debug logging
   console.log('[Revalidate] Request received at:', new Date().toISOString());
-  console.log('[Revalidate] Secret from query:', secret ? `${secret.substring(0,10)}... (length: ${secret.length})` : 'MISSING');
+  console.log('[Revalidate] Secret from query:', request.nextUrl.searchParams.get('secret') ? 'Found' : 'MISSING');
+  console.log('[Revalidate] Secret from header:', request.headers.get('X-Webhook-Secret') ? 'Found' : 'MISSING');
   console.log('[Revalidate] Expected secret defined:', !!process.env.WORDPRESS_REVALIDATE_SECRET);
-  console.log('[Revalidate] Expected secret:', process.env.WORDPRESS_REVALIDATE_SECRET ? `${process.env.WORDPRESS_REVALIDATE_SECRET.substring(0,10)}... (length: ${process.env.WORDPRESS_REVALIDATE_SECRET.length})` : 'UNDEFINED');
-  console.log('[Revalidate] Secrets match:', secret === process.env.WORDPRESS_REVALIDATE_SECRET);
-
-  // Verify secret token
-  if (secret !== process.env.WORDPRESS_REVALIDATE_SECRET) {
-    console.log('[Revalidate] 401 - Secret mismatch or undefined');
-    return NextResponse.json(
-      { message: 'Invalid secret token' },
-      { status: 401 }
-    );
-  }
 
   // Validate origin header (optional security enhancement)
   const origin = request.headers.get('origin') || request.headers.get('referer');
@@ -68,6 +61,17 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.log('[Revalidate] Body parsing failed:', error);
   }
+
+  // Verify secret token from any source
+  if (secret !== process.env.WORDPRESS_REVALIDATE_SECRET) {
+    console.log('[Revalidate] 401 - Secret mismatch or undefined');
+    return NextResponse.json(
+      { message: 'Invalid secret token' },
+      { status: 401 }
+    );
+  }
+
+  console.log('[Revalidate] Secret validated successfully');
 
   try {
     const { path, tag, invalidation, surrogate_keys } = body;

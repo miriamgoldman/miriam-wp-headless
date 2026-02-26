@@ -2,7 +2,6 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getAllPostSlugs, getPostBySlug } from '@/lib/wordpress/queries';
-import PageContent from '@/components/wordpress/PageContent';
 
 interface PostPageProps {
   params: Promise<{ slug: string }>;
@@ -21,7 +20,6 @@ export async function generateStaticParams() {
       slug,
     }));
   } catch (error) {
-    // If WordPress is unavailable during build, return placeholder
     console.warn('[generateStaticParams] WordPress unavailable, using placeholder');
     return [{ slug: 'placeholder' }];
   }
@@ -42,21 +40,6 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
   return {
     title: post.title,
     description: excerpt.slice(0, 160),
-    openGraph: {
-      title: post.title,
-      description: excerpt.slice(0, 160),
-      type: 'article',
-      publishedTime: post.date,
-      modifiedTime: post.modified,
-      images: post.featuredImage
-        ? [
-            {
-              url: post.featuredImage.node.sourceUrl,
-              alt: post.featuredImage.node.altText || post.title,
-            },
-          ]
-        : [],
-    },
   };
 }
 
@@ -69,17 +52,14 @@ export default async function PostPage({ params }: PostPageProps) {
   }
 
   return (
-    <div className="bg-white">
-      <PageContent content={post} showMeta={true} />
+    <article>
+      <h1>{post.title}</h1>
+      <p>Published: {new Date(post.date).toLocaleDateString()}</p>
+      <p>Last updated: {new Date(post.modified).toLocaleDateString()}</p>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <Link
-          href="/blog"
-          className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium"
-        >
-          &larr; Back to blog
-        </Link>
-      </div>
-    </div>
+      <div dangerouslySetInnerHTML={{ __html: post.content }} />
+
+      <Link href="/blog">← Back to blog</Link>
+    </article>
   );
 }

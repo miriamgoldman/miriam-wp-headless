@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getAllPageSlugs, getPageBySlug } from '@/lib/wordpress/queries';
-import PageContent from '@/components/wordpress/PageContent';
 
 interface PageProps {
   params: Promise<{ slug: string[] }>;
@@ -20,7 +19,6 @@ export async function generateStaticParams() {
       slug: [slug],
     }));
   } catch (error) {
-    // If WordPress is unavailable during build, return placeholder
     console.warn('[generateStaticParams] WordPress unavailable, using placeholder');
     return [{ slug: ['placeholder'] }];
   }
@@ -40,18 +38,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: page.title,
     description: page.content.replace(/<[^>]*>/g, '').slice(0, 160),
-    openGraph: {
-      title: page.title,
-      type: 'website',
-      images: page.featuredImage
-        ? [
-            {
-              url: page.featuredImage.node.sourceUrl,
-              alt: page.featuredImage.node.altText || page.title,
-            },
-          ]
-        : [],
-    },
   };
 }
 
@@ -65,8 +51,9 @@ export default async function Page({ params }: PageProps) {
   }
 
   return (
-    <div className="bg-white">
-      <PageContent content={page} showMeta={false} />
-    </div>
+    <article>
+      <h1>{page.title}</h1>
+      <div dangerouslySetInnerHTML={{ __html: page.content }} />
+    </article>
   );
 }

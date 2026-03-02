@@ -1,52 +1,66 @@
 /**
- * WordPress REST API Client
- * Simple fetch wrapper for WordPress REST API v2
+ * WordPress GraphQL Client
+ * Simple fetch wrapper for WPGraphQL
  */
 
 const WORDPRESS_API_URL = process.env.WORDPRESS_API_URL || '';
+
+export interface GraphQLResponse<T> {
+  data?: T;
+  errors?: Array<{
+    message: string;
+    locations?: Array<{ line: number; column: number }>;
+    path?: string[];
+  }>;
+}
 
 interface FetchOptions {
   tags?: string[];
 }
 
-/**
- * Fetch from WordPress REST API
- */
-export async function fetchFromWordPress<T>(
-  endpoint: string,
+export async function fetchGraphQL<T>(
+  query: string,
+  variables: Record<string, unknown> = {},
   options: FetchOptions = {}
 ): Promise<T> {
   if (!WORDPRESS_API_URL) {
     throw new Error('WORDPRESS_API_URL environment variable is not set');
   }
 
-  // Build full URL
-  const url = `${WORDPRESS_API_URL}${endpoint}`;
-
   const fetchOptions: RequestInit = {
+    method: 'POST',
     headers: {
-      'Accept': 'application/json',
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify({ query, variables }),
   };
 
-  // Add cache tags if provided
   if (options.tags && options.tags.length > 0) {
     fetchOptions.next = { tags: options.tags };
   }
 
   try {
-    const response = await fetch(url, fetchOptions);
+    const response = await fetch(WORDPRESS_API_URL, fetchOptions);
 
     if (!response.ok) {
       throw new Error(
-        `REST API request failed: ${response.status} ${response.statusText}`
+        `GraphQL request failed: ${response.status} ${response.statusText}`
       );
     }
 
-    const data = await response.json();
-    return data as T;
+    const json: GraphQLResponse<T> = await response.json();
+
+    if (json.errors) {
+      console.error('GraphQL errors:', JSON.stringify(json.errors));
+    }
+
+    if (!json.data) {
+      throw new Error('No data returned from GraphQL');
+    }
+
+    return json.data;
   } catch (error) {
-    console.error('Error fetching from WordPress:', error);
+    console.error('Error fetching from WordPress GraphQL:', error);
     throw error;
   }
 }

@@ -76,20 +76,24 @@ Visit `http://localhost:3000`
 
 ### Environment Variables Setup
 
-Use Terminus Secrets Manager to configure environment variables:
+Use Terminus Secrets Manager to configure environment variables on the NextJS site.
 
 ```bash
 # Install Secrets Manager plugin
 terminus self:plugin:install terminus-secrets-manager-plugin
 
 # Set site-wide variables
-terminus secret:site:set <site-name> WORDPRESS_REVALIDATE_SECRET "your-secret"
+terminus secret:site:set <nextjs-site-name> WORDPRESS_REVALIDATE_SECRET "your-secret"
 
 # Set environment-specific WordPress URLs
-terminus secret:env:set <site-name>.dev WORDPRESS_API_URL "https://dev-wp.pantheonsite.io/graphql"
-terminus secret:env:set <site-name>.test WORDPRESS_API_URL "https://test-wp.pantheonsite.io/graphql"
-terminus secret:env:set <site-name>.live WORDPRESS_API_URL "https://live-wp.pantheonsite.io/graphql"
+terminus secret:env:set <nextjs-site-name>.dev WORDPRESS_API_URL "https://dev-wp.pantheonsite.io/graphql"
+terminus secret:env:set <nextjs-site-name>.test WORDPRESS_API_URL "https://test-wp.pantheonsite.io/graphql"
+terminus secret:env:set <nextjs-site-name>.live WORDPRESS_API_URL "https://live-wp.pantheonsite.io/graphql"
 ```
+
+For the WP site, you will need to copy the same `WORDPRESS_REVALIDATE_SECRET` from the NextJS site, as well as set your `NEXTJS_WEBHOOK_URL` secret. This will be https://your-nextjs-site.pantheonsite.io/api/revalidate . Use the same pattern as above, but your site name will be that of your WordPress site.
+
+You can alternatively set secrets via the Dashboard.
 
 ### Automatic Variables
 

@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { EditorBlock, BlockNode, CoreParagraphBlock, CoreHeadingBlock, CoreImageBlock, CoreQuoteBlock, CoreListBlock, CoreCodeBlock, CoreSeparatorBlock, CoreButtonBlock, CoreButtonsBlock, CoreColumnBlock, CoreColumnsBlock, CoreGroupBlock, CorePullquoteBlock } from '@/lib/wordpress/types';
+import { EditorBlock, BlockNode, CoreParagraphBlock, CoreHeadingBlock, CoreImageBlock, CoreQuoteBlock, CoreListBlock, CoreCodeBlock, CoreSeparatorBlock, CoreButtonBlock, CoreButtonsBlock, CoreColumnBlock, CoreColumnsBlock, CoreGroupBlock, CoreCoverBlock, CorePullquoteBlock } from '@/lib/wordpress/types';
 import CoreParagraph from './CoreParagraph';
 import CoreHeading from './CoreHeading';
 import CoreImage from './CoreImage';
@@ -8,6 +8,7 @@ import CoreList from './CoreList';
 import CoreCode from './CoreCode';
 import CoreSeparator from './CoreSeparator';
 import CoreButton from './CoreButton';
+import CoreCover from './CoreCover';
 import CorePullquote from './CorePullquote';
 
 /**
@@ -45,6 +46,9 @@ function Block({ node }: { node: BlockNode }) {
 
     case 'CoreQuote':
       return <CoreQuote block={node as unknown as CoreQuoteBlock} />;
+
+    case 'CoreCover':
+      return <CoreCover block={node as unknown as CoreCoverBlock} children={node.children} />;
 
     case 'CorePullquote':
       return <CorePullquote block={node as unknown as CorePullquoteBlock} />;

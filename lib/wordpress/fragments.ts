@@ -124,6 +124,21 @@ export const EDITOR_BLOCKS_FIELDS = `
         verticalAlignment
       }
     }
+    ... on CoreCover {
+      attributes {
+        url
+        alt
+        dimRatio
+        overlayColor
+        customOverlayColor
+        minHeight
+        minHeightUnit
+        contentPosition
+        isDark
+        backgroundType
+        tagName
+      }
+    }
     ... on CorePullquote {
       attributes {
         pullquoteValue: value

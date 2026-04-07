@@ -214,6 +214,23 @@ export interface CoreMediaTextBlock extends EditorBlock {
   };
 }
 
+export interface CoreCoverBlock extends EditorBlock {
+  __typename: 'CoreCover';
+  attributes: {
+    url?: string;
+    alt?: string;
+    dimRatio?: number;
+    overlayColor?: string;
+    customOverlayColor?: string;
+    minHeight?: number;
+    minHeightUnit?: string;
+    contentPosition?: string;
+    isDark?: boolean;
+    backgroundType?: string;
+    tagName?: string;
+  };
+}
+
 export interface CorePullquoteBlock extends EditorBlock {
   __typename: 'CorePullquote';
   attributes: {

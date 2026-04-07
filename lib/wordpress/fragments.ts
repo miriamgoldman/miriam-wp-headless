@@ -126,7 +126,7 @@ export const EDITOR_BLOCKS_FIELDS = `
     }
     ... on CorePullquote {
       attributes {
-        value
+        pullquoteValue: value
         citation
         textAlign
         backgroundColor

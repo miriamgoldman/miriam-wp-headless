@@ -1,7 +1,7 @@
 import { CorePullquoteBlock } from '@/lib/wordpress/types';
 
 export default function CorePullquote({ block }: { block: CorePullquoteBlock }) {
-  const { value, citation, textAlign } = block.attributes;
+  const { pullquoteValue: value, citation, textAlign } = block.attributes;
 
   if (!value) return null;
 

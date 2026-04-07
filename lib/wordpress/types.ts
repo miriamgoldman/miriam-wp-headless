@@ -217,7 +217,7 @@ export interface CoreMediaTextBlock extends EditorBlock {
 export interface CorePullquoteBlock extends EditorBlock {
   __typename: 'CorePullquote';
   attributes: {
-    value?: string;
+    pullquoteValue?: string;
     citation?: string;
     textAlign?: string;
     backgroundColor?: string;

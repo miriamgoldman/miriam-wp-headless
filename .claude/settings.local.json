@@ -28,7 +28,9 @@
       "Bash(timeout 10 npm run dev:*)",
       "Bash(echo:*)",
       "Read(//Users/miriamgoldman/Pantheon/Headless/**)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(source /Users/miriamgoldman/Pantheon/Headless/miriam-wp-headless/.env.local)",
+      "Bash(curl -s -X POST \"$WORDPRESS_API_URL\" -H \"Content-Type: application/json\" -d '{:*)"
     ]
   }
 }

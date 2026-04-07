@@ -1,5 +1,6 @@
 import { Post, Page } from '@/lib/wordpress/types';
 import FeaturedImage from './FeaturedImage';
+import BlockRenderer from '@/components/blocks/BlockRenderer';
 
 interface PageContentProps {
   content: Post | Page;
@@ -14,6 +15,7 @@ export default function PageContent({ content, showMeta = true }: PageContentPro
   });
 
   const isPost = 'author' in content;
+  const hasBlocks = content.editorBlocks && content.editorBlocks.length > 0;
 
   return (
     <article className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -51,7 +53,11 @@ export default function PageContent({ content, showMeta = true }: PageContentPro
         />
       )}
 
-      <div className="wp-content" dangerouslySetInnerHTML={{ __html: content.content }} />
+      {hasBlocks ? (
+        <BlockRenderer blocks={content.editorBlocks!} />
+      ) : (
+        <div className="wp-content" dangerouslySetInnerHTML={{ __html: content.content }} />
+      )}
 
       {isPost && content.tags && content.tags.nodes.length > 0 && (
         <footer className="mt-12 pt-8 border-t border-gray-200">

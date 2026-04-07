@@ -18,6 +18,124 @@ export const AUTHOR_FIELDS = `
   }
 `;
 
+export const EDITOR_BLOCKS_FIELDS = `
+  fragment EditorBlocksFields on EditorBlock {
+    __typename
+    name
+    clientId
+    parentClientId
+    renderedHtml
+    ... on CoreParagraph {
+      attributes {
+        content
+        align
+        textColor
+        backgroundColor
+        fontSize
+      }
+    }
+    ... on CoreHeading {
+      attributes {
+        content
+        level
+        textAlign
+        textColor
+        backgroundColor
+      }
+    }
+    ... on CoreImage {
+      attributes {
+        url
+        alt
+        caption
+        width
+        height
+        align
+        href
+        sizeSlug
+      }
+    }
+    ... on CoreQuote {
+      attributes {
+        value
+        citation
+        align
+      }
+    }
+    ... on CoreList {
+      attributes {
+        ordered
+        values
+      }
+    }
+    ... on CoreCode {
+      attributes {
+        content
+      }
+    }
+    ... on CoreSeparator {
+      attributes {
+        opacity
+      }
+    }
+    ... on CoreButton {
+      attributes {
+        text
+        url
+        linkTarget
+        rel
+        backgroundColor
+        textColor
+        className
+      }
+    }
+    ... on CoreButtons {
+      attributes {
+        layout
+      }
+    }
+    ... on CoreColumn {
+      attributes {
+        width
+        verticalAlignment
+      }
+    }
+    ... on CoreColumns {
+      attributes {
+        isStackedOnMobile
+        verticalAlignment
+      }
+    }
+    ... on CoreGroup {
+      attributes {
+        tagName
+        backgroundColor
+        textColor
+      }
+    }
+    ... on CoreMediaText {
+      attributes {
+        mediaUrl
+        mediaAlt
+        mediaType
+        mediaWidth
+        isStackedOnMobile
+        imageFill
+        verticalAlignment
+      }
+    }
+    ... on CorePullquote {
+      attributes {
+        value
+        citation
+        textAlign
+        backgroundColor
+        textColor
+      }
+    }
+  }
+`;
+
 export const POST_FIELDS = `
   fragment PostFields on Post {
     id
@@ -52,9 +170,13 @@ export const POST_FIELDS = `
         slug
       }
     }
+    editorBlocks {
+      ...EditorBlocksFields
+    }
   }
   ${FEATURED_IMAGE_FIELDS}
   ${AUTHOR_FIELDS}
+  ${EDITOR_BLOCKS_FIELDS}
 `;
 
 export const PAGE_FIELDS = `
@@ -76,8 +198,12 @@ export const PAGE_FIELDS = `
         slug
       }
     }
+    editorBlocks {
+      ...EditorBlocksFields
+    }
   }
   ${FEATURED_IMAGE_FIELDS}
+  ${EDITOR_BLOCKS_FIELDS}
 `;
 
 export const POST_CARD_FIELDS = `

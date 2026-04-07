@@ -26,7 +26,9 @@
       "Bash(npm view:*)",
       "Bash(npm run build:*)",
       "Bash(timeout 10 npm run dev:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Read(//Users/miriamgoldman/Pantheon/Headless/**)",
+      "Bash(grep:*)"
     ]
   }
 }

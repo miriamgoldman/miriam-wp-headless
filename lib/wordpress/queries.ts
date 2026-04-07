@@ -208,6 +208,34 @@ async function fetchPostsByCategoryData(
   return { posts: data.posts.nodes, surrogateKeys: uniqueKeys };
 }
 
+async function fetchFrontPageData(): Promise<{ page: Page | null; surrogateKeys: string[] }> {
+  const query = `
+    query FrontPage {
+      nodeByUri(uri: "/") {
+        ... on Page {
+          ...PageFields
+        }
+      }
+    }
+    ${PAGE_FIELDS}
+  `;
+
+  const data = await fetchGraphQL<{ nodeByUri: Page | null }>(
+    query,
+    {},
+    { tags: ['front-page', 'page-list'] }
+  );
+
+  const page = data.nodeByUri ?? null;
+
+  if (!page) {
+    return { page: null, surrogateKeys: ['front-page'] };
+  }
+
+  const surrogateKeys = [...generatePageSurrogateKeys(page), 'front-page'];
+  return { page, surrogateKeys };
+}
+
 async function fetchSiteSettingsData(): Promise<{
   settings: {
     title: string;
@@ -246,6 +274,20 @@ async function fetchSiteSettingsData(): Promise<{
 // ============================================================================
 // CACHED WRAPPER FUNCTIONS WITH 'use cache'
 // ============================================================================
+
+export async function getFrontPage(): Promise<Page | null> {
+  'use cache';
+  cacheLife({ stale: Infinity, revalidate: Infinity, expire: Infinity });
+
+  try {
+    const { page, surrogateKeys } = await fetchFrontPageData();
+    surrogateKeys.forEach((key) => cacheTag(key));
+    return page;
+  } catch (error) {
+    console.warn('Unable to fetch front page:', error);
+    return null;
+  }
+}
 
 export async function getAllPostSlugs(): Promise<string[]> {
   'use cache';
